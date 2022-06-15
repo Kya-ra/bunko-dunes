@@ -2,7 +2,7 @@
 
 import discord
 import os
-import io
+import re
 import random
 from zalgo_text import zalgo
 from dotenv import load_dotenv
@@ -148,7 +148,34 @@ async def on_message(message):
     if msg.startswith('/logo'):
       # Upload a recoloured Gamers logo
       # More functionality to come! Right now it just uploads a random one
-      logo = discord.File(gamers_logo_change.random_recolour())
-      await chn.send(file=logo)
+      failed = False
+      if len(msg) > 5:
+        if msg.split(" ")[1] == "random":
+          # random recolour
+          logo = discord.File(gamers_logo_change.random_recolour())
+          await chn.send(file=logo)
+        elif len(msg.split(" ")) == 5:
+          # parse hex
+          args = msg.split(" ")
+          for arg in args[1:]:
+            if re.match("[0-9A-Fa-f]{6}", arg) is None:
+              failed = True
+              break
+          if not failed:
+            logo = discord.File(gamers_logo_change.colour_logo(args[1], args[2], args[3], args[4]))
+            await chn.send(file=logo)  
+
+        else:
+          failed = True
+      else:
+        failed = True
+
+      if failed:
+        # Instruction code
+        return_str = "*Usage:* "
+        return_str += "`/logo [background] [tower] [dice] [pips]`"
+        return_str += " | `/logo random`\n"
+        return_str += "*Example:* `/logo 9f3036 ffffff dca948 ffffff`"
+        await chn.send(return_str)
           
 client.run(os.getenv('DISCORD_TOKEN'))
