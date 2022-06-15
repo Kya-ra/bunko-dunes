@@ -2,9 +2,12 @@
 
 import discord
 import os
+import io
 import random
 from zalgo_text import zalgo
 from dotenv import load_dotenv
+
+import gamers_logo_change
 
 # Bunko source code
 # Discord bot for DU Gamers
@@ -141,5 +144,11 @@ async def on_message(message):
           await chn.send(outputString[0] + 'Result = ' + str(round(result,2)))
         except:
           await chn.send("Parsing error, please check your input")
+    
+    if msg.startswith('/logo'):
+      # Upload a recoloured Gamers logo
+      # More functionality to come! Right now it just uploads a random one
+      logo = discord.File(gamers_logo_change.random_recolour())
+      await chn.send(file=logo)
           
 client.run(os.getenv('DISCORD_TOKEN'))
