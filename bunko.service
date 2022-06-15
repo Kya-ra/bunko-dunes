@@ -1,0 +1,25 @@
+# Example file to set up a systemd service.
+# 
+# On Ubuntu, first move this file to /etc/systemd/system/
+# 
+# Replace WorkingDirectory and ExecStart  with the directory
+# and full path to bunko.py respectively.
+#
+# Then run:
+#  sudo systemctl enable bunko.service
+#  sudo systemctl start bunko.service
+#
+# Your service should be running. check the status with:
+#  sudo systemctl status bunko.service
+
+[Unit]
+Description=DU Gamers Discord Server Bot
+
+[Service]
+User=root
+WorkingDirectory=/root/Bunko
+ExecStart=/root/Bunko/bunko.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
