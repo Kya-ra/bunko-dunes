@@ -125,7 +125,7 @@ async def on_message(message):
     msg = message.content.lower()
     chn = message.channel
     
-    if "who\'s a good bot?" in msg:
+    if "who\'s a good bot?" in msg or "who\'s a good bot!" in msg:
         await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
 
     if msg.startswith('/r ') or msg.startswith('/roll'):
@@ -141,4 +141,5 @@ async def on_message(message):
           await chn.send(outputString[0] + 'Result = ' + str(round(result,2)))
         except:
           await chn.send("Parsing error, please check your input")
-        
+          
+client.run(os.getenv('DISCORD_TOKEN'))
