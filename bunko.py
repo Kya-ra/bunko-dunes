@@ -2,7 +2,6 @@
 
 import discord
 import os
-import re
 import random
 from zalgo_text import zalgo
 from dotenv import load_dotenv
@@ -17,7 +16,10 @@ import gamers_logo_change
 # Load environment variables, to keep Discord bot token distinct from this file
 load_dotenv()
 
-client = discord.Client()
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = discord.Client(intents=intents)
 
 async def roll(num):
     return random.randint(1, num)
@@ -126,12 +128,17 @@ async def on_message(message):
         return
 
     msg = message.content.lower()
-    chn = message.channel
+    chn = message.channel        
     
     if "who\'s a good bot?" in msg or "who\'s a good bot!" in msg:
         await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
 
+    if "i would die for bunko" in msg or "i would die for you bunko" in msg:
+        await chn.send(zalgo.zalgo().zalgofy("then perish"))
+        await chn.send("||jk ily2 :heart:||")
+
     if msg.startswith('/r ') or msg.startswith('/roll'):
+        print("Rolling in",chn.name)
         command = msg[(msg.find(' ')+1):].lower().replace(" ","")
         if command.isnumeric():
           result = await roll(int(command))
@@ -146,6 +153,7 @@ async def on_message(message):
           await chn.send("Parsing error, please check your input")
     
     if msg.startswith('/logo'):
+      print("Logo request in",chn.name)
       # Upload a recoloured Gamers logo
       # More functionality to come! Right now it just uploads a random one
       failed = False
@@ -177,5 +185,9 @@ async def on_message(message):
         return_str += " | `/logo random`\n"
         return_str += "*Example:* `/logo 9f3036 ffffff dca948 ffffff`"
         await chn.send(return_str)
-          
+
+print("Starting up...")
 client.run(os.getenv('DISCORD_TOKEN'))
+#guild = client.guilds[0]
+#print("Connected to", guild.name)
+print("Exiting")
