@@ -2,6 +2,7 @@
 
 import discord
 import os
+import re
 import random
 from zalgo_text import zalgo
 from dotenv import load_dotenv
@@ -136,6 +137,9 @@ async def on_message(message):
     if "i would die for bunko" in msg or "i would die for you bunko" in msg:
         await chn.send(zalgo.zalgo().zalgofy("then perish"))
         await chn.send("||jk ily2 :heart:||")
+
+    if msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
+        await chn.send(":heart:")
 
     if msg.startswith('/r ') or msg.startswith('/roll'):
         print("Rolling in",chn.name)
