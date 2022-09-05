@@ -10,6 +10,9 @@ from zalgo_text import zalgo
 from dotenv import load_dotenv
 
 import gamers_logo_change
+from dice import parse
+import member_validation
+import bunko_tasks
 
 ADMIN_ROLE="Committee"
 MEMBER_ROLE="DU Gamers Member"
@@ -25,7 +28,7 @@ safe_roles = ["Committee", "Committee.", "Server Administration", "Guest", "Serv
 
 # Bunko source code
 # Discord bot for DU Gamers
-# Original code by Maghnus (Ferrus), adapted by Adam (Pizza, github: rathdrummer)
+# Original code by Maghnus (Ferrus), heavily modified by Adam (Pizza, github: rathdrummer)
 
 
 class Bunko(commands.Bot):
@@ -41,22 +44,42 @@ class Bunko(commands.Bot):
         g = await self.gamers()
         return await g.fetch_channel(SECRET_BOT_CHANNEL_ID)
 
-    async def send_embed(self, ctx, author_url=None, url=None, title="DU Gamers", description="", color=0x9f3036, thumbnail=None, fieldname=None, fieldvalue="\u200b", author=None, author_icon=None):
+    async def send_embed(self, ctx, ref=None, author_url=None, url=None, title="DU Gamers", description="", color=0x9f3036, thumbnail=None, fieldname=None, fieldvalue="\u200b", author=None, author_icon=None, footer=None,view=None):
     	e = discord.Embed(title=title, url=url, description=description, color=color)
     	if author:
     		e.set_author(name=author, icon_url=author_icon, url=author_url)
     	if thumbnail:
     		e.set_thumbnail(url=thumbnail)
+    	if footer:
+    		e.set_footer(text=footer)
     	if fieldname:
     		if fieldvalue:
     			e.add_field(name=fieldname, value=fieldvalue)
     		else:
     			e.add_field(name=fieldname)
-    	await ctx.send(embed=e)
+    	if not view:
+    		await ctx.send(embed=e, reference=ref)
+    	else:
+            await ctx.send(embed=e, view=view, reference=ref)
+            
+"""
+class ValidateButton(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.member=None
+        print("view created")
+        
+    @discord.ui.button(label="Grant access",style=discord.ButtonStyle.green)
+    async def approve(self, interaction: discord.Interaction, button: discord.ui.Button):
+        print("validated via button")
+        await interaction.response.send_message('Granting access', ephemeral=True)
+        m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
+        await self.member.add_roles(m_role)
+        self.stop()
+"""
 
 
-
-# Load environment variabpassles, to keep Discord bot token distinct from this file
+# Load environment variables, to keep Discord bot token distinct from this file
 load_dotenv()
 
 intents = discord.Intents.default()
@@ -79,100 +102,6 @@ async def verify_admin(ctx):
             return True
     await ctx.send("Sorry, admin only")
     return False
-
-def parse (command, outputString):
-    print(command)
-    if command.isnumeric():
-        print(command)
-        return int(command)
-    if '(' in command:
-      index = command.rfind('(')
-      left = command[:index]
-      temp = command[(index+1):]
-      index2 = temp.find(')')
-      centre = temp[:index2]
-      right = temp[(index2+1):]
-      centreresult = parse(centre, outputString)
-      if left and (left[-1].isnumeric() or left[-1] == ')'):
-          left = left + '*'
-      result = parse(left + str(centreresult) + right, outputString)
-      print(result)
-      return result
-    if '+' in command or '-' in command:
-        index = max(command.rfind('+'), command.rfind('-'))
-        left = parse(command[:index], outputString)
-        right = parse(command[(index+1):], outputString)
-        if command[index] == "+":
-            result = left + right
-            outputString[0] = outputString[0] + (str(round(left, 2)) + '+' + str(round(right,2)) + "=" + str(round(result,2))) + '\n'
-            return result
-        else:
-            result = left - right
-            outputString[0] = outputString[0] + (str(round(left, 2)) + '-' + str(round(right,2)) + "=" + str(round(result,2))) + '\n'
-            return result
-    if '*' in command or '/' in command:
-        index = max(command.rfind('*'), command.rfind('/'))
-        left = parse(command[:index], outputString)
-        right = parse(command[(index+1):], outputString)
-        if command[index] == "*":
-            result = left * right
-            outputString[0] = outputString[0] + (str(round(left, 2))+'*'+str(round(right,2))+"="+str(round(result,2))) + '\n'
-            return result
-        else:
-            result = left / right
-            outputString[0] = outputString[0] + (str(round(left, 2)) + '/' + str(round(right,2)) + "=" + str(round(result,2))) + '\n'
-            return result
-    if 'adv' in command:
-      index = command.find('adv')
-      if command[:index] == "":
-        left = 2
-      else:
-        left = parse(command[:index], outputString)
-      right = parse(command[(index + 3):], outputString)
-      result = 0
-      printout = "Rolling "+str(left)+"d"+str(right)+" with advantage\n>"
-      for x in range(left):
-          num = random.randint(1, right)
-          result = max(num, result)
-          printout += ("  " + str(num))
-      printout += ("\nMax = " + str(result))
-      outputString[0] = outputString[0] + (printout) + '\n'
-      return result
-    if 'dis' in command:
-      index = command.find('dis')
-      if command[:index] == "":
-        left = 2
-      else:
-        left = parse(command[:index], outputString)
-      right = parse(command[(index + 3):], outputString)
-      result = right
-      printout = "Rolling "+str(left)+"d"+str(right)+" with disadvantage\n>"
-      for x in range(left):
-          num = random.randint(1, right)
-          result = min(num, result)
-          printout += ("  " + str(num))
-      printout += ("\nMin = " + str(result))
-      outputString[0] = outputString[0] + (printout) + '\n'
-      return result
-    if 'd' in command:
-        index = command.find('d')
-        if command[:index] == "":
-          left = 1
-        else:
-          left = parse(command[:index], outputString)
-        right = parse(command[(index + 1):], outputString)
-        result = 0
-        printout = "Rolling "+str(left)+"d"+str(right)+"\n>"
-        for x in range(left):
-            num = random.randint(1, right)
-            result += num
-            printout += ("  " + str(num))
-        printout += ("\nTotal = " + str(result))
-        outputString[0] = outputString[0] + (printout) + '\n'
-        print('done roll')
-        return result
-    else:
-        raise Exception("Parsing Error, check your input")
 
 async def confirm_big_command(ctx, provided_token):
     global confirmation_token, pending_command
@@ -266,7 +195,7 @@ async def roll(ctx, *, arg):
 
     if result:
     	bits = outputString[0].split("\n")
-    	await bot.send_embed(ctx, author_url=ctx.message.jump_url, author=ctx.author.display_name+bits[0].replace("Rolling"," rolled"), author_icon=ctx.author.display_avatar, title=bits[2].replace(" = ", ": "), description=bits[1].replace("> ", ""))
+    	await bot.send_embed(ctx, author_url=ctx.message.jump_url, author=ctx.author.display_name+bits[0].replace("Rolling"," rolled"), author_icon=ctx.author.display_avatar, title=result, description=bits[1].replace("> ", ""))
 
 @bot.command()
 @commands.check(verify_admin)
@@ -308,6 +237,14 @@ async def kick_all_non_members(ctx):
     pending_command = msg
     await ctx.send(response_msg)
 
+@bot.command(name="?")
+async def list_all_commands(ctx):
+    message = "Here's the stuff I can do right now (more coming soon):\n\n"
+    message += "> **+roll** or **+r** - `+roll d20`, `+r 3dis6`\n" 
+    message += "> **+logo** - `+logo 990055 fff00f f55fff 000000`, `+logo random`\n"
+    message += "> **+zalgofy** - `+zalgofy hello friends`" 
+    await ctx.send(message)
+    
 
 @bot.command(name="validate")
 @commands.check(verify_admin)
@@ -358,45 +295,212 @@ async def cancel_dangerous_command(ctx):
         await ctx.send("*Action* `"+pending_command+"` *cancelled.*")
         pending_command = confirmation_token = ""
 
+@bot.command(aliases=["who_is_a_guest"])
+@commands.check(verify_admin)
+@is_in_guild(GAMERS_GUILD_ID)
+async def list_current_guests(ctx):
+    gamers = await bot.gamers()
+    guestlist = ""
+    count = 0
+    for gamer in gamers.members:
+        if "Guest" in [x.name for x in gamer.roles]:
+            # got guest
+            guestlist += "> " + gamer.display_name + " (" + gamer.name + "#" + gamer.discriminator + ")\n"
+            count += 1
+            
+    message = str(count)+" current users with \"Guest\" role:\n" + guestlist
+    await ctx.send(message)
+
+
+@bot.command(aliases=["who_is_not_a_member"])
+@commands.check(verify_admin)
+@is_in_guild(GAMERS_GUILD_ID)
+async def list_non_members(ctx):
+    await ctx.typing()
+    gamers = await bot.gamers()
+    guestlist = "Non-members:\n```"
+    count = 0
+    members = 0
+    for gamer in gamers.members:
+        members += 1
+        membership = False
+        safe = False
+        notes = ""
+        for role in gamer.roles:
+            if role.name in safe_roles and role.name != "Guest":
+                safe = True
+                #break
+            if role.name == MEMBER_ROLE:
+                membership = True
+            if role.name == "Guest":
+            	notes = "(Guest)"
+        if not membership and not safe:
+            if len(guestlist) > 1500:
+                await ctx.send(guestlist+"```")
+                guestlist = "```"
+                await ctx.typing()
+            guestlist += gamer.display_name.ljust(20) + (gamer.name + "#" + gamer.discriminator).ljust(20) + notes+"\n"
+            count += 1
+            
+    message = guestlist +"```"+ str(count)+" current non-member users (not including bots, Committee etc)"
+    await ctx.send(message)
+
+@bot.command()
+@commands.check(verify_admin)
+@is_in_guild(GAMERS_GUILD_ID)
+async def debug_guest_removal(ctx):
+    await bunko_tasks.remove_guests(ctx)
+
+@bot.command()
+@commands.check(verify_admin)
+@is_in_guild(GAMERS_GUILD_ID)
+async def admin_commands(ctx):
+    message = "Here's my admin-only commands:\n\n"
+    message += "> **+who_is_a_guest** or **+list_current_guests**\n" 
+    message += "> **+who_is_not_a_member** or **+list_non_members**\n" 
+    message += "\n"
+    message += "High stakes commands (will send an 'Are you sure' message, requiring confirmation):\n"
+    message += "> **+remove_all_member_roles** - removes the 'DU Gamers Member' role from everyone\n"
+    message += "> **+kick_all_non_members** - kicks everyone that doesn't have the 'DU Gamers Member' role (barring bots, committee, etc)\n"
+    message += "That last one is untested and could have serious consequences if it fails (i.e. kicking everyone) - maybe try not to use if possible!"
+    await ctx.send(message)
+
 
 @bot.event
 async def on_message(message):
-    await bot.process_commands(message)
+	await bot.process_commands(message)
 
-    #await client.change_presence(activity=discord.Game("with Dice"))
+	#await client.change_presence(activity=discord.Game("with Dice"))
 
-    if message.author == bot.user:
-        return
+	if message.author == bot.user:
+	    return
+
+	if not message.guild:
+	    await on_dm(message)
+	    return
+
+	msg = message.content.lower()
+	chn = message.channel
+
+	if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
+		print("Welcome message for "+message.author.display_name)
+		content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
+		content+="1. Please say hi :grinning:\n\n"
+		content+="2. Have a read of the <#755069071342436452>, and pick your pronouns in <#760455413148811285>\n\n"
+		content+="3. Edit your nickname to include the name you go by in real life (click on the server name on the top right, then \"Edit Server Profile\")\n\n"
+		content+="4. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
+	
+		await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,\
+			 footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
+
+		return
+
+	if "who\'s a good bot" in msg:
+		await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
+
+	elif "i would die for bunko" in msg or "i would die for you bunko" in msg:
+		await chn.send(zalgo.zalgo().zalgofy("then perish"))
+		await chn.send("||jk ily2 :heart:||")
+
+	elif msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
+		await chn.send(":heart:")
+
+async def on_dm(message):
+
+	if member_validation.valid_email(message.content.strip()):
+        # Got an email, this could be someone trying to verify their account. 
+        # First check they are in the Gamers server.
+		user = message.author
+
+		if user in (await bot.gamers()).members:
+			# gottem, let's run through the validation process
+			member = (await bot.gamers()).get_member(user.id)
+			await message.channel.typing()
+			returncode = member_validation.check_membership(message.content.strip())
+
+			if returncode["status"]:
+				# Verified and validated. First let Committee know.
+				username = member.name+"#"+member.discriminator
+				
+				let_in ="Once they've introduced themselves, click below to let them in"
+				committee_msg = "Membership confirmed"
+				desc = let_in
+				member_response = "Committee has been notified and will grant you access soon."
+
+				if "already" in returncode["details"]:
+				    committee_msg = "Membership already confirmed"
+				    member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
+				if "added" in returncode["details"]:
+				    pass
+				else:
+				    desc += "\nReturn code: `"+returncode["details"]+"`"
+
+				# try to make a button
+				committee_channel = await bot.bot_channel()
+				icon = member.display_avatar
+ 
+				view=discord.ui.View()
+				buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
+
+				async def buttonSign_callback(interaction):
+					print("validated via button")
+					await interaction.response.send_message('Granting access', ephemeral=True)
+					m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
+					await member.add_roles(m_role)
+
+				buttonSign.callback=buttonSign_callback
+				view.add_item(item=buttonSign)
+
+                
+				await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
+				    		 description=desc, thumbnail=icon, color=0xdca948, view=view)
+
+				await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
+				
+			else:
+				# User does not have an account, let them know
+
+				await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
+				            description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
+				            +"and that you gave the right email (your @tcd.ie email).\n\n"\
+				            +"If you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
+            
+		else:
+			await relay_message_to_committee(message)
+
+	else:
+		await relay_message_to_committee(message)
+
+"""
+# welcome message
+@bot.event
+async def on_member_join(member):
+	intro_channel = discord.utils.get(member.guild.channels, name="introductions")
+"""	
+
+async def relay_message_to_committee(message):
+     # Relay message to master-bot-commands
+    channel = await bot.bot_channel()
+    member = channel.guild.get_member(message.author.id)
+    msg = message.content
+    username = member.name+"#"+member.discriminator
+    icon = member.display_avatar
     
-    if not message.guild:
-        # Relay message to master-bot-commands
-        channel = await bot.bot_channel()
-        member = channel.guild.get_member(message.author.id)
-        msg = message.content
-        #reply = "Message from "+message.author.display_name+":\n> "+msg.replace("\n", "\n> ")
-        username = member.name+"#"+member.discriminator
-        icon = member.display_avatar
-        
-        await bot.send_embed(channel, title="Message from "+member.display_name+" ("+username+")",\
-        		 description=msg, thumbnail=icon)
-        #await channel.send(reply)
-        return
+    await bot.send_embed(channel, title="Message from "+member.display_name+" ("+username+")",\
+    		 description=msg, thumbnail=icon)
 
-    msg = message.content.lower()
-    chn = message.channel
+@bot.event
+async def on_ready():
+    #connect up all the shit
+    await bot.wait_until_ready()
+    print("Logged in to guilds",[g.name for g in bot.guilds])
+    bc = await bot.bot_channel()
+    bunko_tasks.remove_guests.start(bc)
 
-    if "who\'s a good bot" in msg:
-        await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
-
-    elif "i would die for bunko" in msg or "i would die for you bunko" in msg:
-        await chn.send(zalgo.zalgo().zalgofy("then perish"))
-        await chn.send("||jk ily2 :heart:||")
-
-    elif msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
-        await chn.send(":heart:")
 
 print("Starting up...")
 bot.run(os.getenv('DISCORD_TOKEN'))
+Bunko
 #guild = client.guilds[0]
 #print("Connected to", guild.name)
 print("Exiting")
