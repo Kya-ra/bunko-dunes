@@ -13,6 +13,7 @@ import gamers_logo_change
 from dice import parse
 import member_validation
 import bunko_tasks
+import library
 
 ADMIN_ROLE="Committee"
 MEMBER_ROLE="DU Gamers Member"
@@ -45,21 +46,21 @@ class Bunko(commands.Bot):
         return await g.fetch_channel(SECRET_BOT_CHANNEL_ID)
 
     async def send_embed(self, ctx, ref=None, author_url=None, url=None, title="DU Gamers", description="", color=0x9f3036, thumbnail=None, fieldname=None, fieldvalue="\u200b", author=None, author_icon=None, footer=None,view=None):
-    	e = discord.Embed(title=title, url=url, description=description, color=color)
-    	if author:
-    		e.set_author(name=author, icon_url=author_icon, url=author_url)
-    	if thumbnail:
-    		e.set_thumbnail(url=thumbnail)
-    	if footer:
-    		e.set_footer(text=footer)
-    	if fieldname:
-    		if fieldvalue:
-    			e.add_field(name=fieldname, value=fieldvalue)
-    		else:
-    			e.add_field(name=fieldname)
-    	if not view:
-    		await ctx.send(embed=e, reference=ref)
-    	else:
+        e = discord.Embed(title=title, url=url, description=description, color=color)
+        if author:
+            e.set_author(name=author, icon_url=author_icon, url=author_url)
+        if thumbnail:
+            e.set_thumbnail(url=thumbnail)
+        if footer:
+            e.set_footer(text=footer)
+        if fieldname:
+            if fieldvalue:
+                e.add_field(name=fieldname, value=fieldvalue)
+            else:
+                e.add_field(name=fieldname)
+        if not view:
+            await ctx.send(embed=e, reference=ref)
+        else:
             await ctx.send(embed=e, view=view, reference=ref)
             
 """
@@ -131,7 +132,7 @@ async def confirm_big_command(ctx, provided_token):
         for member in ctx.guild.members:
             good_to_kick = True
             if member.bot:
-            	good_to_kick=False
+                good_to_kick=False
             for role in member.roles:
                 if role==m_role or role.name in safe_roles:
                     good_to_kick = False
@@ -146,9 +147,9 @@ async def confirm_big_command(ctx, provided_token):
         await ctx.send("*would have kicked "+str(count)+" non-members (See audit log for details)*")
 
 
-@bot.command()
+@bot.command(aliases = ["you_good_bunko"])
 async def test_command(ctx):
-    await ctx.send("Command works")
+    await ctx.send("I'm g :)")
 
 @bot.command()
 async def zalgofy(ctx, *, arg):
@@ -194,8 +195,60 @@ async def roll(ctx, *, arg):
         await ctx.send("Parsing error, please check your input")
 
     if result:
-    	bits = outputString[0].split("\n")
-    	await bot.send_embed(ctx, author_url=ctx.message.jump_url, author=ctx.author.display_name+bits[0].replace("Rolling"," rolled"), author_icon=ctx.author.display_avatar, title=result, description=bits[1].replace("> ", ""))
+        bits = outputString[0].split("\n")
+        await bot.send_embed(ctx, ref=ctx.message, author_url=ctx.message.jump_url, author=ctx.author.display_name+bits[0].replace("Rolling"," rolled"), author_icon=ctx.author.display_avatar, title=result, description=bits[1].replace("> ", ""))
+
+
+@bot.command(aliases=["l", "search", "library"])
+async def library_search(ctx, *, args):
+    await ctx.typing()
+    
+    if library.is_library_id(args.upper()):
+        # ID lookup
+
+        args = args.upper()
+        types={"R" : "Role-playing game",
+                "W" : "Wargame",
+                "C" : "Card game",
+                "B" : "Board game"}
+        
+        result = library.get_entry(args)[0]
+        
+        if "|" in result["franchise"]:
+            franchises = "\n".join(result["franchise"].split("|"))
+        else: 
+            franchises = result["franchise"]
+
+        if "|" in result["other_images"]:
+            otherpics = ""
+            count = 1
+            for p in result["other_images"].split("|"):
+                otherpics += "[pic"+str(count)+"]("+p+") "
+                count+=1
+        else: 
+            otherpics = "[pic]("+result["other_images"]+")"
+        
+        e = discord.Embed(title=result["name"],colour=0xdca948, description=franchises)
+
+        e.set_author(name="Library item")
+        e.add_field(name="Type",value=types[args[0]])
+        
+        if otherpics:
+            e.add_field(name="Other images",value=otherpics)
+            
+        if result["main_image"]:
+            e.set_thumbnail(url=result["main_image"])
+
+        e.set_footer(text=args)
+        
+        await ctx.reply(embed=e)
+        
+    else:
+        # search query
+        result = library.query(args)
+        outstring = "*" +args+ "*\n"+ library.make_query_string(result)
+        await bot.send_embed(ctx, ref=ctx.message, color=0xdca948,title="Library search", description = outstring, footer="To view an item, search for its ID", )
+            
 
 @bot.command()
 @commands.check(verify_admin)
@@ -239,8 +292,9 @@ async def kick_all_non_members(ctx):
 
 @bot.command(name="?")
 async def list_all_commands(ctx):
-    message = "Here's the stuff I can do right now (more coming soon):\n\n"
+    message = "*Bunko 1.2* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
     message += "> **+roll** or **+r** - `+roll d20`, `+r 3dis6`\n" 
+    message += "> **+library** or **+l** - `+l Monster Manual`\n"
     message += "> **+logo** - `+logo 990055 fff00f f55fff 000000`, `+logo random`\n"
     message += "> **+zalgofy** - `+zalgofy hello friends`" 
     await ctx.send(message)
@@ -333,7 +387,7 @@ async def list_non_members(ctx):
             if role.name == MEMBER_ROLE:
                 membership = True
             if role.name == "Guest":
-            	notes = "(Guest)"
+                notes = "(Guest)"
         if not membership and not safe:
             if len(guestlist) > 1500:
                 await ctx.send(guestlist+"```")
@@ -368,115 +422,118 @@ async def admin_commands(ctx):
 
 @bot.event
 async def on_message(message):
-	await bot.process_commands(message)
+    await bot.process_commands(message)
 
-	#await client.change_presence(activity=discord.Game("with Dice"))
+    #await client.change_presence(activity=discord.Game("with Dice"))
 
-	if message.author == bot.user:
-	    return
+    if message.author == bot.user:
+        return
 
-	if not message.guild:
-	    await on_dm(message)
-	    return
+    if not message.guild:
+        await on_dm(message)
+        return
 
-	msg = message.content.lower()
-	chn = message.channel
+    msg = message.content.lower()
+    chn = message.channel
 
-	if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
-		print("Welcome message for "+message.author.display_name)
-		content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
-		content+="1. Please say hi :grinning:\n\n"
-		content+="2. Have a read of the <#755069071342436452>, and pick your pronouns in <#760455413148811285>\n\n"
-		content+="3. Edit your nickname to include the name you go by in real life (click on the server name on the top right, then \"Edit Server Profile\")\n\n"
-		content+="4. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
-	
-		await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,\
-			 footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
+    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
+        print("Welcome message for "+message.author.display_name)
+        content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
+        content+="1. Please say hi :grinning:\n\n"
+        content+="2. Have a read of the <#755069071342436452>, and pick your pronouns in <#760455413148811285>\n\n"
+        content+="3. Edit your nickname to include the name you go by in real life (click on the server name on the top right, then \"Edit Server Profile\")\n\n"
+        content+="4. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
+    
+        await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,\
+             footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
 
-		return
+        return
 
-	if "who\'s a good bot" in msg:
-		await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
+    if "who\'s a good bot" in msg:
+        await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
 
-	elif "i would die for bunko" in msg or "i would die for you bunko" in msg:
-		await chn.send(zalgo.zalgo().zalgofy("then perish"))
-		await chn.send("||jk ily2 :heart:||")
+    elif "i would die for bunko" in msg or "i would die for you bunko" in msg:
+        await chn.send(zalgo.zalgo().zalgofy("then perish"))
+        await chn.send("||jk ily2 :heart:||")
 
-	elif msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
-		await chn.send(":heart:")
+    elif msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
+        await chn.send(":heart:")
 
 async def on_dm(message):
 
-	if member_validation.valid_email(message.content.strip()):
+    if member_validation.valid_email(message.content.strip()):
         # Got an email, this could be someone trying to verify their account. 
         # First check they are in the Gamers server.
-		user = message.author
+        user = message.author
 
-		if user in (await bot.gamers()).members:
-			# gottem, let's run through the validation process
-			member = (await bot.gamers()).get_member(user.id)
-			await message.channel.typing()
-			returncode = member_validation.check_membership(message.content.strip())
+        if user in (await bot.gamers()).members:
+            # gottem, let's run through the validation process
+            member = (await bot.gamers()).get_member(user.id)
+            await message.channel.typing()
+            returncode = member_validation.check_membership(message.content.strip())
 
-			if returncode["status"]:
-				# Verified and validated. First let Committee know.
-				username = member.name+"#"+member.discriminator
-				
-				let_in ="Once they've introduced themselves, click below to let them in"
-				committee_msg = "Membership confirmed"
-				desc = let_in
-				member_response = "Committee has been notified and will grant you access soon."
+            if returncode["status"]:
+                # Verified and validated. First let Committee know.
+                username = member.name+"#"+member.discriminator
+                
+                let_in ="Once they've introduced themselves, click below to let them in"
+                committee_msg = "Membership confirmed"
+                desc = let_in
+                member_response = "Committee has been notified and will grant you access soon."
 
-				if "already" in returncode["details"]:
-				    committee_msg = "Membership already confirmed"
-				    member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
-				if "added" in returncode["details"]:
-				    pass
-				else:
-				    desc += "\nReturn code: `"+returncode["details"]+"`"
+                if "already" in returncode["details"]:
+                    committee_msg = "Membership already confirmed"
+                    member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
+                if "added" in returncode["details"]:
+                    pass
+                else:
+                    desc += "\nReturn code: `"+returncode["details"]+"`"
 
-				# try to make a button
-				committee_channel = await bot.bot_channel()
-				icon = member.display_avatar
+                # try to make a button
+                committee_channel = await bot.bot_channel()
+                icon = member.display_avatar
  
-				view=discord.ui.View()
-				buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
+                view=discord.ui.View()
+                buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
 
-				async def buttonSign_callback(interaction):
-					print("validated via button")
-					await interaction.response.send_message('Granting access', ephemeral=True)
-					m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
-					await member.add_roles(m_role)
+                async def buttonSign_callback(interaction):
+                    print("validated via button")
+                    await interaction.response.send_message('Granting access', ephemeral=True)
+                    m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
+                    await member.add_roles(m_role)
 
-				buttonSign.callback=buttonSign_callback
-				view.add_item(item=buttonSign)
+                buttonSign.callback=buttonSign_callback
+                view.add_item(item=buttonSign)
 
                 
-				await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
-				    		 description=desc, thumbnail=icon, color=0xdca948, view=view)
+                await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
+                             description=desc, thumbnail=icon, color=0xdca948, view=view)
 
-				await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
-				
-			else:
-				# User does not have an account, let them know
+                await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
+                
+            else:
+                # User does not have an account, let them know
 
-				await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
-				            description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
-				            +"and that you gave the right email (your @tcd.ie email).\n\n"\
-				            +"If you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
+                await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
+                            description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
+                            +"and that you gave the right email (your @tcd.ie email).\n\n"\
+                            +"If you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
+
+                committee_channel = await bot.bot_channel()
+                await committee_channel.send("*Couldn't find membership for "+member.display_name+" ("+member.name+"#"+member.discriminator+")*")            
             
-		else:
-			await relay_message_to_committee(message)
+        else:
+            await relay_message_to_committee(message)
 
-	else:
-		await relay_message_to_committee(message)
+    else:
+        await relay_message_to_committee(message)
 
 """
 # welcome message
 @bot.event
 async def on_member_join(member):
-	intro_channel = discord.utils.get(member.guild.channels, name="introductions")
-"""	
+    intro_channel = discord.utils.get(member.guild.channels, name="introductions")
+"""    
 
 async def relay_message_to_committee(message):
      # Relay message to master-bot-commands
@@ -487,7 +544,7 @@ async def relay_message_to_committee(message):
     icon = member.display_avatar
     
     await bot.send_embed(channel, title="Message from "+member.display_name+" ("+username+")",\
-    		 description=msg, thumbnail=icon)
+             description=msg, thumbnail=icon)
 
 @bot.event
 async def on_ready():
