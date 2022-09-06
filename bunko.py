@@ -292,7 +292,7 @@ async def kick_all_non_members(ctx):
 
 @bot.command(name="?")
 async def list_all_commands(ctx):
-    message = "*Bunko 1.2* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
+    message = "*Bunko 1.3* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
     message += "> **+roll** or **+r** - `+roll d20`, `+r 3dis6`\n" 
     message += "> **+library** or **+l** - `+l Monster Manual`\n"
     message += "> **+logo** - `+logo 990055 fff00f f55fff 000000`, `+logo random`\n"
@@ -303,25 +303,58 @@ async def list_all_commands(ctx):
 @bot.command(name="validate")
 @commands.check(verify_admin)
 #@is_in_guild(GAMERS_GUILD_ID)
-async def validate_membership(ctx, arg):
+async def validate_membership(ctx,*, arg):
 
     # First get the username - check that's all working
     user = arg.strip()
-    if "<@" not in user and ">" not in user:
-        return
-    userid = user.replace("<@", "").replace(">","")
-    if not userid.isnumeric():
-        return
-    print("Validating", userid)
-    member = ctx.guild.get_member(int(userid))
+    member = None
+    
+    if "<@" in user and ">" in user:
+        #tag given
+        print("got tagged validation command")
+        
+        userid = user.replace("<@", "").replace(">","")
+        
+        if not userid.isnumeric():
+            await ctx.reply("*Format: `username#1234`*")
+            return
+                           
+        member = ctx.guild.get_member(int(userid))
+        
+    else:
+        #plaintext given
+        print("got plaintext validation command")
+        if user.count("#") == 1:
+            [name, discriminator] = user.split("#")
+            print(name)
+            print(discriminator)
+
+            
+            for m in ctx.guild.members:
+                if m.name.lower().strip() == name.lower().strip() and str(m.discriminator) == discriminator:
+                    member = m
+                    break
+                    
+            if not member:
+                await ctx.reply("*User not found*")
+                return
+                
+        else:
+            await ctx.reply("*Format: `username#1234`*")
+            return
+        
+    
     if member == None or member not in ctx.guild.members:
         await ctx.send("*User not found*")
         return
+        
     # now get the proper role
     m_role = discord.utils.get(ctx.guild.roles, name=MEMBER_ROLE)
+    
     if m_role in member.roles:
-        await ctx.send("*Already a member!*")
+        await ctx.reply("*Already a member :white_check_mark:*")
         return
+        
     await member.add_roles(m_role)
     name = member.nick if member.nick != None else member.name
     await ctx.send("*"+name+" membership validated. Welcome!*")
@@ -408,10 +441,19 @@ async def debug_guest_removal(ctx):
 @bot.command()
 @commands.check(verify_admin)
 @is_in_guild(GAMERS_GUILD_ID)
+async def list_zero_activity_users(ctx):
+    await ctx.reply("Command under construction!")
+    
+
+
+@bot.command()
+@commands.check(verify_admin)
+@is_in_guild(GAMERS_GUILD_ID)
 async def admin_commands(ctx):
     message = "Here's my admin-only commands:\n\n"
     message += "> **+who_is_a_guest** or **+list_current_guests**\n" 
     message += "> **+who_is_not_a_member** or **+list_non_members**\n" 
+    message += "> **+list_zero_activity_users**\n" 
     message += "\n"
     message += "High stakes commands (will send an 'Are you sure' message, requiring confirmation):\n"
     message += "> **+remove_all_member_roles** - removes the 'DU Gamers Member' role from everyone\n"
@@ -470,7 +512,7 @@ async def on_dm(message):
             # gottem, let's run through the validation process
             member = (await bot.gamers()).get_member(user.id)
             await message.channel.typing()
-            returncode = member_validation.check_membership(message.content.strip())
+            returncode = member_validation.check_membership(message.content.strip().lower())
 
             if returncode["status"]:
                 # Verified and validated. First let Committee know.
@@ -493,14 +535,25 @@ async def on_dm(message):
                 committee_channel = await bot.bot_channel()
                 icon = member.display_avatar
  
-                view=discord.ui.View()
+                view=discord.ui.View(timeout=None)
                 buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
 
                 async def buttonSign_callback(interaction):
-                    print("validated via button")
-                    await interaction.response.send_message('Granting access', ephemeral=True)
+                    # give someone the role
+                    #await interaction.response.send_message('Granting access', ephemeral=True)
                     m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
                     await member.add_roles(m_role)
+
+                    # get original embed
+                    original_embed = interaction.message.embeds[0]
+                    original_embed.description = None
+
+                    # now deactivate button
+                    view_off = discord.ui.View()
+                    button_off = discord.ui.Button(label="Access granted", style=discord.ButtonStyle.grey, disabled=True)
+                    view_off.add_item(item=button_off)
+                    await interaction.message.edit(embed = original_embed, view=view_off)
+                    
 
                 buttonSign.callback=buttonSign_callback
                 view.add_item(item=buttonSign)
