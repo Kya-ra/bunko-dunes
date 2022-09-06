@@ -147,7 +147,7 @@ async def confirm_big_command(ctx, provided_token):
         await ctx.send("*would have kicked "+str(count)+" non-members (See audit log for details)*")
 
 
-@bot.command(aliases = ["you_good_bunko"])
+@bot.command(aliases = ["you_good_bunko", "you_ok_bunko", "you_g_bunko"])
 async def test_command(ctx):
     await ctx.send("I'm g :)")
 
