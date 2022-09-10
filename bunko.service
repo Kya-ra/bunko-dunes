@@ -16,9 +16,9 @@
 Description=DU Gamers Discord Server Bot
 
 [Service]
-User=root
-WorkingDirectory=/root/Bunko
-ExecStart=/root/Bunko/bunko.py
+User=adam
+WorkingDirectory=/home/adam/bunko
+ExecStart=/home/adam/bunko/bunko.py
 Restart=always
 
 [Install]
