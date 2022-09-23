@@ -292,7 +292,7 @@ async def kick_all_non_members(ctx):
 
 @bot.command(name="?")
 async def list_all_commands(ctx):
-    message = "*Bunko 1.3* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
+    message = "*Bunko 1.4* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
     message += "> **+roll** or **+r** - `+roll d20`, `+r 3dis6`\n" 
     message += "> **+library** or **+l** - `+l Monster Manual`\n"
     message += "> **+logo** - `+logo 990055 fff00f f55fff 000000`, `+logo random`\n"
