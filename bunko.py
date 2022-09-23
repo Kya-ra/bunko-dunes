@@ -503,80 +503,102 @@ async def on_message(message):
 
 async def on_dm(message):
 
-    if member_validation.valid_email(message.content.strip()):
-        # Got an email, this could be someone trying to verify their account. 
-        # First check they are in the Gamers server.
-        user = message.author
+    if "@" in message.content:
+        # Filter out email information, pass to validation thingy, and forward filtered message to committee
+        match = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.content)
 
-        if user in (await bot.gamers()).members:
-            # gottem, let's run through the validation process
-            member = (await bot.gamers()).get_member(user.id)
-            await message.channel.typing()
-            returncode = member_validation.check_membership(message.content.strip().lower())
+        email = ""
+        
+        
+        if match:
+            email=match.group(0)
+            message.content = message.content.replace(email, "`[EMAIL]`")
 
-            if returncode["status"]:
-                # Verified and validated. First let Committee know.
-                username = member.name+"#"+member.discriminator
+            forward = True
+            
+            if member_validation.valid_email(message.content.strip()):
+                #only thing in the message is email. dont' bother forwarding the rest
+                forward = False
                 
-                let_in ="Once they've introduced themselves, click below to let them in"
-                committee_msg = "Membership confirmed"
-                desc = let_in
-                member_response = "Committee has been notified and will grant you access soon."
+            # Got an email, this could be someone trying to verify their account. 
+            # First check they are in the Gamers server.
+            user = message.author
 
-                if "already" in returncode["details"]:
-                    committee_msg = "Membership already confirmed"
-                    member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
-                if "added" in returncode["details"]:
-                    pass
-                else:
-                    desc += "\nReturn code: `"+returncode["details"]+"`"
+            if user in (await bot.gamers()).members:
+                # gottem, let's run through the validation process
+                member = (await bot.gamers()).get_member(user.id)
+                await message.channel.typing()
+                returncode = member_validation.check_membership(email.lower())
 
-                # try to make a button
-                committee_channel = await bot.bot_channel()
-                icon = member.display_avatar
- 
-                view=discord.ui.View(timeout=None)
-                buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
-
-                async def buttonSign_callback(interaction):
-                    # give someone the role
-                    #await interaction.response.send_message('Granting access', ephemeral=True)
-                    m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
-                    await member.add_roles(m_role)
-
-                    # get original embed
-                    original_embed = interaction.message.embeds[0]
-                    original_embed.description = None
-
-                    # now deactivate button
-                    view_off = discord.ui.View()
-                    button_off = discord.ui.Button(label="Access granted", style=discord.ButtonStyle.grey, disabled=True)
-                    view_off.add_item(item=button_off)
-                    await interaction.message.edit(embed = original_embed, view=view_off)
+                if returncode["status"]:
+                    # Verified and validated. First let Committee know.
+                    username = member.name+"#"+member.discriminator
                     
+                    let_in ="Once they've introduced themselves, click below to let them in"
+                    committee_msg = "Membership confirmed"
+                    desc = let_in
+                    member_response = "Committee has been notified and will grant you access soon."
 
-                buttonSign.callback=buttonSign_callback
-                view.add_item(item=buttonSign)
+                    if "already" in returncode["details"]:
+                        committee_msg = "Membership already confirmed"
+                        member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
+                    if "added" in returncode["details"]:
+                        pass
+                    else:
+                        desc += "\nReturn code: `"+returncode["details"]+"`"
 
-                
-                await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
-                             description=desc, thumbnail=icon, color=0xdca948, view=view)
+                    # try to make a button
+                    committee_channel = await bot.bot_channel()
+                    icon = member.display_avatar
 
-                await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
+                    view=discord.ui.View(timeout=None)
+                    buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
+
+                    async def buttonSign_callback(interaction):
+                        print("Button pressed, giving role")
+                        # give someone the role
+                        #await interaction.response.send_message('Granting access', ephemeral=True)
+                        m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
+                        await member.add_roles(m_role)
+
+                        # get original embed
+                        original_embed = interaction.message.embeds[0]
+                        original_embed.description = None
+
+                        print("Role given")
+                        # now deactivate button
+                        view_off = discord.ui.View()
+                        button_off = discord.ui.Button(label="Access granted", style=discord.ButtonStyle.grey, disabled=True)
+                        view_off.add_item(item=button_off)
+                        await interaction.message.edit(embed = original_embed, view=view_off)
+                        
+
+                    buttonSign.callback=buttonSign_callback
+                    view.add_item(item=buttonSign)
+
+                    
+                    await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
+                                 description=desc, thumbnail=icon, color=0xdca948, view=view)
+
+                    await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
+                    
+                else:
+                    # User does not have an account, let them know
+
+                    await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
+                                description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
+                                +"and that you gave the right email (your @tcd.ie email).\n\n"\
+                                +"If you've signed up within the past hour or so, give it another hour and try again. CSC data can be slow to update on our end.\n\n"\
+                                +"If it still isn't working and you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
+
+                    committee_channel = await bot.bot_channel()
+                    await committee_channel.send("*Couldn't find membership for "+member.display_name+" ("+member.name+"#"+member.discriminator+")*")            
+
+                if forward:
+                    await relay_message_to_committee(message)
                 
             else:
-                # User does not have an account, let them know
-
-                await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
-                            description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
-                            +"and that you gave the right email (your @tcd.ie email).\n\n"\
-                            +"If you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
-
-                committee_channel = await bot.bot_channel()
-                await committee_channel.send("*Couldn't find membership for "+member.display_name+" ("+member.name+"#"+member.discriminator+")*")            
-            
-        else:
-            await relay_message_to_committee(message)
+                await relay_message_to_committee(message)
 
     else:
         await relay_message_to_committee(message)
