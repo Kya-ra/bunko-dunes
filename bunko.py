@@ -481,7 +481,7 @@ async def on_message(message):
     if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
-        content+="1. Please say hi :grinning:\n\n"
+        content+="1. Please say hi :grinning: let us know a bit about yourself\n\n"
         content+="2. Have a read of the <#755069071342436452>, and pick your pronouns in <#760455413148811285>\n\n"
         content+="3. Edit your nickname to include the name you go by in real life (click on the server name on the top right, then \"Edit Server Profile\")\n\n"
         content+="4. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
@@ -529,6 +529,7 @@ async def on_dm(message):
                 member = (await bot.gamers()).get_member(user.id)
                 await message.channel.typing()
                 returncode = member_validation.check_membership(email.lower())
+                
 
                 if returncode["status"]:
                     # Verified and validated. First let Committee know.
@@ -611,9 +612,11 @@ async def on_member_join(member):
 """    
 
 async def relay_message_to_committee(message):
-     # Relay message to master-bot-commands
+    # Relay message to master-bot-commands
     channel = await bot.bot_channel()
-    member = channel.guild.get_member(message.author.id)
+    member = (await bot.gamers()).get_member(message.author.id)
+    if not member:
+        member = message.author
     msg = message.content
     username = member.name+"#"+member.discriminator
     icon = member.display_avatar
