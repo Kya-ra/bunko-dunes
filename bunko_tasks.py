@@ -4,7 +4,7 @@ import discord
 from discord.ext import tasks
 from datetime import datetime
 
-@tasks.loop(hours=24)
+#@tasks.loop(hours=24)
 async def remove_guests(ctx):
     date = datetime.now()
     if date.day == 1:
