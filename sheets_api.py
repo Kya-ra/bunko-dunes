@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+
 import httplib2
 
 from apiclient import discovery
@@ -67,4 +67,4 @@ def debug_sheet_usage(SPREADSHEET_ID):
 
 def debug_sheet_error(ID):
     SheetsAPI.append_to_sheet(ID,"sheet!A1:A" ,"test")
-"""
+

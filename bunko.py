@@ -10,13 +10,13 @@ from zalgo_text import zalgo
 from dotenv import load_dotenv
 
 import member_validation
-import bunko_tasks
+#import bunko_tasks
 
 ADMIN_ROLE="Committee"
 MEMBER_ROLE="DUNeS Member"
 
-DUNES_SERVER_ID=855920166986186783
-SECRET_BOT_CHANNEL_ID=855920167431438345
+DUNES_SERVER_ID=1276921717435924481
+SECRET_BOT_CHANNEL_ID=1276921717435924484
 
 advanced_guilds = ["DUNeS - DU Neurodiversity Society","neurotests"]
 confirmation_token = ""
@@ -59,14 +59,12 @@ class Bunko(commands.Bot):
             await ctx.send(embed=e, reference=ref)
         else:
             await ctx.send(embed=e, view=view, reference=ref)
-            
-"""
+
 class ValidateButton(discord.ui.View):
     def __init__(self):
         super().__init__()
         self.member=None
         print("view created")
-        
     @discord.ui.button(label="Grant access",style=discord.ButtonStyle.green)
     async def approve(self, interaction: discord.Interaction, button: discord.ui.Button):
         print("validated via button")
@@ -74,8 +72,6 @@ class ValidateButton(discord.ui.View):
         m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
         await self.member.add_roles(m_role)
         self.stop()
-"""
-
 
 # Load environment variables, to keep Discord bot token distinct from this file
 load_dotenv()
@@ -371,7 +367,7 @@ async def on_message(message):
     msg = message.content.lower()
     chn = message.channel
 
-    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
+    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["neurotests"]) or msg == "bunko welcome debug a-go-go":
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
         content+="1. Have a read of the <#1206320208344514640>, and pick your pronouns in <#855920167632896047>\n\n"
@@ -426,29 +422,16 @@ async def on_dm(message):
                     # Verified and validated. First let Committee know.
                     username = member.name
 
-                    let_in ="Once they've introduced themselves, click below to let them in"
-                    committee_msg = "Membership confirmed"
-                    desc = let_in
-                    member_response = "Committee has been notified and will grant you access soon."
+                    await bot.send_embed(message.channel, title="Membership confirmed", description=" You should be granted access soon!")
                     m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
                     await member.add_roles(m_role)
 
                     if "already" in returncode["details"]:
-                        committee_msg = "Membership already confirmed"
-                        member_response = "If you still don't have access, reply to this DM and your message will be forwarded to Committee."
+                        await bot.send_embed(message.channel, title="Membership already confirmed", description="If you still don't have access, reply to this DM and your message will be forwarded to Committee.")
                     if "added" in returncode["details"]:
                         pass
                     else:
                         desc += "\nReturn code: `"+returncode["details"]+"`"
-
-                    # try to make a button
-                    committee_channel = await bot.bot_channel()
-                    icon = member.display_avatar
-
-                    await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,
-                                 description=desc, thumbnail=icon, color=0xdca948, view=view)
-
-                    await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
                     
                 else:
                     # User does not have an account, let them know
@@ -464,19 +447,19 @@ async def on_dm(message):
 
                 if forward:
                     await relay_message_to_committee(message)
-                
+              
             else:
                 await relay_message_to_committee(message)
 
     else:
         await relay_message_to_committee(message)
 
-"""
+
 # welcome message
 @bot.event
 async def on_member_join(member):
     intro_channel = discord.utils.get(member.guild.channels, name="introductions")
-"""    
+
 
 async def relay_message_to_committee(message):
     # Relay message to master-bot-commands
@@ -497,11 +480,11 @@ async def on_ready():
     await bot.wait_until_ready()
     print("Logged in to guilds",[g.name for g in bot.guilds])
     bc = await bot.bot_channel()
-    bunko_tasks.remove_guests.start(bc)
+    #bunko_tasks.remove_guests.start(bc)
 
 
 print("Starting up...")
 bot.run(os.getenv('DISCORD_TOKEN')) #DO NOT PUT THIS IN LIVE CODE
-#guild = client.guilds[0]
-#print("Connected to", guild.name)
+guild = client.guilds[0]
+print("Connected to", guild.name)
 print("Exiting")
