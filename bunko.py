@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 import member_validation
 #import bunko_tasks
 
-ADMIN_ROLE="Committee"
+ADMIN_ROLE="Discord Administrator"
 MEMBER_ROLE="DUNeS Member"
 
 DUNES_SERVER_ID=1276921717435924481
@@ -21,7 +21,7 @@ SECRET_BOT_CHANNEL_ID=1276921717435924484
 advanced_guilds = ["DUNeS - DU Neurodiversity Society","neurotests"]
 confirmation_token = ""
 pending_command = ""
-safe_roles = ["Committee", "Committee.", "Server Administration", "Guest", "Service bots", "Ambassador", "Admin"]
+safe_roles = ["Committee", "Executive.", "Discord Administrator", "Server Guest", "Bot", "Alumni"]
 
 # Bunko source code
 # Discord bot for DU Gamers
@@ -188,16 +188,6 @@ async def kick_all_non_members(ctx):
     pending_command = msg
     await ctx.send(response_msg)
 
-@bot.command(name="?")
-async def list_all_commands(ctx):
-    message = "*Bunko 1.4* :robot::book::game_die::heart:\n\nHere's the stuff I can do right now:\n"
-    message += "> **+roll** or **+r** - `+roll d20`, `+r 3dis6`\n" 
-    message += "> **+library** or **+l** - `+l Monster Manual`\n"
-    message += "> **+logo** - `+logo 990055 fff00f f55fff 000000`, `+logo random`\n"
-    message += "> **+zalgofy** - `+zalgofy hello friends`" 
-    await ctx.send(message)
-    
-
 @bot.command(name="validate")
 @commands.check(verify_admin)
 #@is_in_guild(DUNES_SERVER_ID)
@@ -346,7 +336,7 @@ async def admin_commands(ctx):
     message += "\n"
     message += "High stakes commands (will send an 'Are you sure' message, requiring confirmation):\n"
     message += "> **+remove_all_member_roles** - removes the 'DU Gamers Member' role from everyone\n"
-    message += "> **+kick_all_non_members** - kicks everyone that doesn't have the 'DU Gamers Member' role (barring bots, committee, etc)\n"
+    message += "> **+kick_all_non_members** - kicks everyone that doesn't have the 'DUNeS Member' role (barring bots, committee, etc)\n"
     message += "That last one is untested and could have serious consequences if it fails (i.e. kicking everyone) - maybe try not to use if possible!"
     await ctx.send(message)
 
@@ -370,8 +360,8 @@ async def on_message(message):
     if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["neurotests"]) or msg == "bunko welcome debug a-go-go":
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
-        content+="1. Have a read of the <#1206320208344514640>, and pick your pronouns in <#855920167632896047>\n\n"
-        content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
+        content+="1. Have a read of the <#1206320208344514640>, and pick your year & optionally, pronouns in <#855920167632896047>\n\n"
+        content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and then let you in!"
     
         await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,
              footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
