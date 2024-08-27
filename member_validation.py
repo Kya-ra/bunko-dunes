@@ -4,8 +4,8 @@ import requests
 import os
 import re
 from dotenv import load_dotenv
-#from sheets_api import SheetsAPI
-#from googleapiclient.errors import HttpError
+from sheets_api import SheetsAPI
+from googleapiclient.errors import HttpError
 
 load_dotenv()
 SHEET_ID = os.getenv("SIGNUPS_SHEET_ID")    
@@ -21,10 +21,10 @@ def check_membership(email):
 
     print("Checking email "+email+"...")
 
-    #r = SheetsAPI.get_sheet_data(SHEET_ID,"signups!A2:A")
+    r = SheetsAPI.get_sheet_data(SHEET_ID,"Sheet1!B:B")
 
     try:
-        #if email in [e[0] for e in r]:
+        if email in [e[0] for e in r]:
             # gottem
             
             print("Membership confirmed")
@@ -39,14 +39,14 @@ def check_membership(email):
             else:
                 print("Recording email")
 
-                #try:
-                    #r = SheetsAPI.append_to_sheet(SHEET_ID, "discord_accounts!A2:A", email)
-                    #print("New entry added successfully.")
-                    #returncode["details"]="email_added"
-                #except HttpError as e:
-                    #print("Error adding new entry:",r)
-                    #print("Reason:",str(e))
-                    #returncode["details"]=str(e)
+                try:
+                    r = SheetsAPI.append_to_sheet(SHEET_ID, "discord_accounts!A2:A", email)
+                    print("New entry added successfully.")
+                    returncode["details"]="email_added"
+                except HttpError as e:
+                    print("Error adding new entry:",r)
+                    print("Reason:",str(e))
+                    returncode["details"]=str(e)
                 
     except Exception as e:
         returncode["details"] = str(e)
