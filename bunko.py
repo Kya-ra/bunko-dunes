@@ -357,7 +357,7 @@ async def on_message(message):
     msg = message.content.lower()
     chn = message.channel
 
-    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["neurotests"]) or msg == "bunko welcome debug a-go-go":
+    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in advanced_guilds) or msg == "bunko welcome debug a-go-go":
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
         content+="1. Have a read of the <#1206320208344514640>, and pick your year & optionally, pronouns in <#855920167632896047>\n\n"
