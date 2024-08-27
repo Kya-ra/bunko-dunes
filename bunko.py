@@ -1,28 +1,24 @@
 #!/usr/bin/env python3
 
 import discord
+import requests
 from discord.ext import commands
 import os
 import re
-import ast
 import random
 from zalgo_text import zalgo
 from dotenv import load_dotenv
 
-import gamers_logo_change
-from dice import parse
 import member_validation
 import bunko_tasks
-import library
 
 ADMIN_ROLE="Committee"
-MEMBER_ROLE="DU Gamers Member"
-MAX_DICE_PER_ROLL = 100
+MEMBER_ROLE="DUNeS Member"
 
-GAMERS_GUILD_ID=370910745342509066
-SECRET_BOT_CHANNEL_ID=687267382011625499
+DUNES_SERVER_ID=855920166986186783
+SECRET_BOT_CHANNEL_ID=855920167431438345
 
-advanced_guilds = ["DU Gamers","pizzabotics test server"]
+advanced_guilds = ["DUNeS - DU Neurodiversity Society","neurotests"]
 confirmation_token = ""
 pending_command = ""
 safe_roles = ["Committee", "Committee.", "Server Administration", "Guest", "Service bots", "Ambassador", "Admin"]
@@ -30,6 +26,7 @@ safe_roles = ["Committee", "Committee.", "Server Administration", "Guest", "Serv
 # Bunko source code
 # Discord bot for DU Gamers
 # Original code by Maghnus (Ferrus), heavily modified by Adam (Pizza, github: rathdrummer)
+# Adaptation for DUNeS by Kyara and Ash
 
 
 class Bunko(commands.Bot):
@@ -38,14 +35,14 @@ class Bunko(commands.Bot):
 
     async def gamers(self):
         if self.gamers_guild == None:
-            self.gamers_guild = self.get_guild(GAMERS_GUILD_ID)
+            self.gamers_guild = self.get_guild(DUNES_SERVER_ID)
         return self.gamers_guild
 
     async def bot_channel(self):
         g = await self.gamers()
         return await g.fetch_channel(SECRET_BOT_CHANNEL_ID)
 
-    async def send_embed(self, ctx, ref=None, author_url=None, url=None, title="DU Gamers", description="", color=0x9f3036, thumbnail=None, fieldname=None, fieldvalue="\u200b", author=None, author_icon=None, footer=None,view=None):
+    async def send_embed(self, ctx, ref=None, author_url=None, url=None, title="DUNeS", description="", color=0x9f3036, thumbnail=None, fieldname=None, fieldvalue="\u200b", author=None, author_icon=None, footer=None,view=None):
         e = discord.Embed(title=title, url=url, description=description, color=color)
         if author:
             e.set_author(name=author, icon_url=author_icon, url=author_url)
@@ -155,104 +152,9 @@ async def test_command(ctx):
 async def zalgofy(ctx, *, arg):
     await ctx.send(zalgo.zalgo().zalgofy(arg))
 
-# Upload a recoloured Gamers logo
-@bot.command()
-async def logo(ctx, *args):
-    instructions = "*Usage:* "
-    instructions += "`/logo [background] [tower] [dice] [pips]`"
-    instructions += " | `/logo random`\n"
-    instructions += "*Example:* `/logo 9f3036 ffffff dca948 ffffff`"
-
-    if len(args) == 0 or args[0] == "random":
-    # random recolour
-        logo = discord.File(gamers_logo_change.random_recolour())
-        await ctx.send(file=logo)
-    elif len(args) == 4:
-        # parse hex
-        for arg in args:
-            if re.match("[0-9A-Fa-f]{6}", arg) is None:
-                await ctx.send(instructions)
-                return
-        logo = discord.File(gamers_logo_change.colour_logo(args[0], args[1], args[2], args[3]))
-        await ctx.send(file=logo)
-    else:
-        await ctx.send(instructions)
-
-@bot.command(aliases=['r'])
-async def roll(ctx, *, arg):
-    command = arg.lower().replace(" ","")
-    if command.isnumeric():
-        result = random.randint(1, int(command))
-        await ctx.send('Rolling 1d' + command +':\n> ' + str(result))
-        return
-    outputString = [""]
-    result = None
-    try:
-        result = parse(command, outputString)
-        #await ctx.send(outputString[0] + 'Result = ' + str(round(result,2)))
-        #print(bits, result)
-    except:
-        await ctx.send("Parsing error, please check your input")
-
-    if result:
-        bits = outputString[0].split("\n")
-        await bot.send_embed(ctx, ref=ctx.message, author_url=ctx.message.jump_url, author=ctx.author.display_name+bits[0].replace("Rolling"," rolled"), author_icon=ctx.author.display_avatar, title=result, description=bits[1].replace("> ", ""))
-
-
-@bot.command(aliases=["l", "search", "library"])
-async def library_search(ctx, *, args):
-    await ctx.typing()
-    
-    if library.is_library_id(args.upper()):
-        # ID lookup
-
-        args = args.upper()
-        types={"R" : "Role-playing game",
-                "W" : "Wargame",
-                "C" : "Card game",
-                "B" : "Board game"}
-        
-        result = library.get_entry(args)[0]
-        
-        if "|" in result["franchise"]:
-            franchises = "\n".join(result["franchise"].split("|"))
-        else: 
-            franchises = result["franchise"]
-
-        if "|" in result["other_images"]:
-            otherpics = ""
-            count = 1
-            for p in result["other_images"].split("|"):
-                otherpics += "[pic"+str(count)+"]("+p+") "
-                count+=1
-        else: 
-            otherpics = "[pic]("+result["other_images"]+")"
-        
-        e = discord.Embed(title=result["name"],colour=0xdca948, description=franchises)
-
-        e.set_author(name="Library item")
-        e.add_field(name="Type",value=types[args[0]])
-        
-        if otherpics:
-            e.add_field(name="Other images",value=otherpics)
-            
-        if result["main_image"]:
-            e.set_thumbnail(url=result["main_image"])
-
-        e.set_footer(text=args)
-        
-        await ctx.reply(embed=e)
-        
-    else:
-        # search query
-        result = library.query(args)
-        outstring = "*" +args+ "*\n"+ library.make_query_string(result)
-        await bot.send_embed(ctx, ref=ctx.message, color=0xdca948,title="Library search", description = outstring, footer="To view an item, search for its ID", )
-            
-
 @bot.command()
 @commands.check(verify_admin)
-#@is_in_guild(GAMERS_GUILD_ID)
+#@is_in_guild(DUNES_SERVER_ID)
 async def remove_all_member_roles(ctx):
     global confirmation_token, pending_command
 
@@ -274,7 +176,7 @@ async def remove_all_member_roles(ctx):
 
 @bot.command()
 @commands.check(verify_admin)
-#@is_in_guild(GAMERS_GUILD_ID)
+#@is_in_guild(DUNES_SERVER_ID)
 async def kick_all_non_members(ctx):
     global confirmation_token, pending_command
     print("called kick all non members")
@@ -302,7 +204,7 @@ async def list_all_commands(ctx):
 
 @bot.command(name="validate")
 @commands.check(verify_admin)
-#@is_in_guild(GAMERS_GUILD_ID)
+#@is_in_guild(DUNES_SERVER_ID)
 async def validate_membership(ctx,*, arg):
 
     # First get the username - check that's all working
@@ -361,7 +263,7 @@ async def validate_membership(ctx,*, arg):
 
 @bot.command(name="confirm")
 @commands.check(verify_admin)
-#@is_in_guild(GAMERS_GUILD_ID)
+#@is_in_guild(DUNES_SERVER_ID)
 async def confirm_dangerous_command(ctx, token):
     #check the token
     global confirmation_token, pending_command
@@ -373,7 +275,7 @@ async def confirm_dangerous_command(ctx, token):
 
 @bot.command(name="cancel")
 @commands.check(verify_admin)
-#@is_in_guild(GAMERS_GUILD_ID)
+#@is_in_guild(DUNES_SERVER_ID)
 async def cancel_dangerous_command(ctx):
     global confirmation_token, pending_command
     if confirmation_token == "" or pending_command == "":
@@ -384,7 +286,7 @@ async def cancel_dangerous_command(ctx):
 
 @bot.command(aliases=["who_is_a_guest"])
 @commands.check(verify_admin)
-@is_in_guild(GAMERS_GUILD_ID)
+@is_in_guild(DUNES_SERVER_ID)
 async def list_current_guests(ctx):
     gamers = await bot.gamers()
     guestlist = ""
@@ -401,7 +303,7 @@ async def list_current_guests(ctx):
 
 @bot.command(aliases=["who_is_not_a_member"])
 @commands.check(verify_admin)
-@is_in_guild(GAMERS_GUILD_ID)
+@is_in_guild(DUNES_SERVER_ID)
 async def list_non_members(ctx):
     await ctx.typing()
     gamers = await bot.gamers()
@@ -434,26 +336,17 @@ async def list_non_members(ctx):
 
 @bot.command()
 @commands.check(verify_admin)
-@is_in_guild(GAMERS_GUILD_ID)
+@is_in_guild(DUNES_SERVER_ID)
 async def debug_guest_removal(ctx):
     await bunko_tasks.remove_guests(ctx)
 
 @bot.command()
 @commands.check(verify_admin)
-@is_in_guild(GAMERS_GUILD_ID)
-async def list_zero_activity_users(ctx):
-    await ctx.reply("Command under construction!")
-    
-
-
-@bot.command()
-@commands.check(verify_admin)
-@is_in_guild(GAMERS_GUILD_ID)
+@is_in_guild(DUNES_SERVER_ID)
 async def admin_commands(ctx):
     message = "Here's my admin-only commands:\n\n"
     message += "> **+who_is_a_guest** or **+list_current_guests**\n" 
-    message += "> **+who_is_not_a_member** or **+list_non_members**\n" 
-    message += "> **+list_zero_activity_users**\n" 
+    message += "> **+who_is_not_a_member** or **+list_non_members**\n"
     message += "\n"
     message += "High stakes commands (will send an 'Are you sure' message, requiring confirmation):\n"
     message += "> **+remove_all_member_roles** - removes the 'DU Gamers Member' role from everyone\n"
@@ -481,12 +374,10 @@ async def on_message(message):
     if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in ["DU Gamers", "pizzabotics test server"]) or msg == "bunko welcome debug a-go-go":
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
-        content+="1. Please say hi :grinning: let us know a bit about yourself\n\n"
-        content+="2. Have a read of the <#755069071342436452>, and pick your pronouns in <#760455413148811285>\n\n"
-        content+="3. Edit your nickname to include the name you go by in real life (click on the server name on the top right, then \"Edit Server Profile\")\n\n"
-        content+="4. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
+        content+="1. Have a read of the <#1206320208344514640>, and pick your pronouns in <#855920167632896047>\n\n"
+        content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and <@&371350576350494730> will let you in!"
     
-        await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,\
+        await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,
              footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
 
         return
@@ -533,12 +424,14 @@ async def on_dm(message):
 
                 if returncode["status"]:
                     # Verified and validated. First let Committee know.
-                    username = member.name+"#"+member.discriminator
-                    
+                    username = member.name
+
                     let_in ="Once they've introduced themselves, click below to let them in"
                     committee_msg = "Membership confirmed"
                     desc = let_in
                     member_response = "Committee has been notified and will grant you access soon."
+                    m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
+                    await member.add_roles(m_role)
 
                     if "already" in returncode["details"]:
                         committee_msg = "Membership already confirmed"
@@ -552,33 +445,7 @@ async def on_dm(message):
                     committee_channel = await bot.bot_channel()
                     icon = member.display_avatar
 
-                    view=discord.ui.View(timeout=None)
-                    buttonSign = discord.ui.Button(label="Grant access to "+member.display_name, style=discord.ButtonStyle.green)
-
-                    async def buttonSign_callback(interaction):
-                        print("Button pressed, giving role")
-                        # give someone the role
-                        #await interaction.response.send_message('Granting access', ephemeral=True)
-                        m_role = discord.utils.get((await bot.gamers()).roles, name=MEMBER_ROLE)
-                        await member.add_roles(m_role)
-
-                        # get original embed
-                        original_embed = interaction.message.embeds[0]
-                        original_embed.description = None
-
-                        print("Role given")
-                        # now deactivate button
-                        view_off = discord.ui.View()
-                        button_off = discord.ui.Button(label="Access granted", style=discord.ButtonStyle.grey, disabled=True)
-                        view_off.add_item(item=button_off)
-                        await interaction.message.edit(embed = original_embed, view=view_off)
-                        
-
-                    buttonSign.callback=buttonSign_callback
-                    view.add_item(item=buttonSign)
-
-                    
-                    await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,\
+                    await bot.send_embed(committee_channel, author=member.display_name+" ("+username+")",  title=committee_msg,
                                  description=desc, thumbnail=icon, color=0xdca948, view=view)
 
                     await bot.send_embed(message.channel, title=committee_msg+"!",description=member_response, color=0xdca948)
@@ -586,14 +453,14 @@ async def on_dm(message):
                 else:
                     # User does not have an account, let them know
 
-                    await bot.send_embed(message.channel, title="Can't seem to find your DU Gamers membership",\
+                    await bot.send_embed(message.channel, title="Can't seem to find your DUNeS membership",
                                 description="Make sure you signed up to the society at https://trinitysocietieshub.com/ "\
                                 +"and that you gave the right email (your @tcd.ie email).\n\n"\
                                 +"If you've signed up within the past hour or so, give it another hour and try again. CSC data can be slow to update on our end.\n\n"\
                                 +"If it still isn't working and you're sure you're a member, let us know - reply to this DM, and your message will be sent on to Committee.")
 
                     committee_channel = await bot.bot_channel()
-                    await committee_channel.send("*Couldn't find membership for "+member.display_name+" ("+member.name+"#"+member.discriminator+")*")            
+                    await committee_channel.send("*Couldn't find membership for "+member.display_name+" ("+member.name+")*")            
 
                 if forward:
                     await relay_message_to_committee(message)
@@ -618,10 +485,10 @@ async def relay_message_to_committee(message):
     if not member:
         member = message.author
     msg = message.content
-    username = member.name+"#"+member.discriminator
+    username = member.name
     icon = member.display_avatar
     
-    await bot.send_embed(channel, title="Message from "+member.display_name+" ("+username+")",\
+    await bot.send_embed(channel, title="Message from "+member.display_name+" ("+username+")",
              description=msg, thumbnail=icon)
 
 @bot.event
@@ -634,8 +501,7 @@ async def on_ready():
 
 
 print("Starting up...")
-bot.run(os.getenv('DISCORD_TOKEN'))
-Bunko
+bot.run(os.getenv('DISCORD_TOKEN')) #DO NOT PUT THIS IN LIVE CODE
 #guild = client.guilds[0]
 #print("Connected to", guild.name)
 print("Exiting")
