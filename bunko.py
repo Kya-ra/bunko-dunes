@@ -357,11 +357,12 @@ async def on_message(message):
     msg = message.content.lower()
     chn = message.channel
 
-    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in advanced_guilds) or msg == "bunko welcome debug a-go-go":
+    if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in advanced_guilds) or msg == "bunko welcome debug a-go-go" or (msg == ".signup" and message.guild.name in advanced_guilds):
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
         content+="1. Have a read of the <#1206320208344514640>, and pick your year & optionally, pronouns in <#855920167632896047>\n\n"
         content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and then let you in!"
+        content+="And just remember, this won't work if you haven't signed up on trinitysocietieshub.com!"
     
         await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,
              footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
