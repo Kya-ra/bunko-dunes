@@ -362,7 +362,7 @@ async def on_message(message):
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
         content+="1. Have a read of the <#1206320208344514640>, and pick your roles in <#855920167632896047>\n\n"
         content+="2. Send me (Neurobot) your tcd.ie email address in a private Discord message, I'll check your membership, and then let you in!\n\n"
-        content+="And just remember, this won't work if you haven't signed up on trinitysocietieshub.com!"
+        content+="And just remember, this won't work if you haven't signed up on [trinitysocietieshub.com](https://trinitysocietieshub.com/collections/social/products/neurodiversity)!"
     
         await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,
              footer="Your email will stay confidential and only be used to check your membership; it won't ever be linked to your username.")
@@ -380,7 +380,7 @@ async def on_message(message):
         await chn.send("https://tenor.com/bRUYj.gif")
 
     elif msg.strip() in ["who is the best committee member", "whos the best committee member"]:
-        await chn.send("Obviously Kyara!")
+        await chn.send("Obviously Soup!")
 
 async def on_dm(message):
 
