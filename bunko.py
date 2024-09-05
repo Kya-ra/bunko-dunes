@@ -15,8 +15,8 @@ import member_validation
 ADMIN_ROLE="Discord Administrator"
 MEMBER_ROLE="DUNeS Member"
 
-DUNES_SERVER_ID=1276921717435924481
-SECRET_BOT_CHANNEL_ID=1276921717435924484
+DUNES_SERVER_ID=855920166986186783
+SECRET_BOT_CHANNEL_ID=855920167431438345
 
 advanced_guilds = ["DUNeS - DU Neurodiversity Society","neurotests"]
 confirmation_token = ""
@@ -360,8 +360,8 @@ async def on_message(message):
     if (message.is_system() and message.type == discord.MessageType.new_member and message.guild.name in advanced_guilds) or msg == "bunko welcome debug a-go-go" or (msg == ".signup" and message.guild.name in advanced_guilds):
         print("Welcome message for "+message.author.display_name)
         content="If you could just do a few things, we can grant you access to the rest of the server:\n\n"
-        content+="1. Have a read of the <#1206320208344514640>, and pick your year & optionally, pronouns in <#855920167632896047>\n\n"
-        content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and then let you in!"
+        content+="1. Have a read of the <#1206320208344514640>, and pick your roles in <#855920167632896047>\n\n"
+        content+="2. Send me (Bunko) your tcd.ie email address in a private Discord message, I'll check your membership, and then let you in!\n\n"
         content+="And just remember, this won't work if you haven't signed up on trinitysocietieshub.com!"
     
         await bot.send_embed(chn,ref=message, title="Welcome "+message.author.display_name+"!", description=content,color=0xdca948,
@@ -370,14 +370,17 @@ async def on_message(message):
         return
 
     if "who\'s a good bot" in msg:
-        await chn.send(zalgo.zalgo().zalgofy("Bunko is!"))
+        await chn.send(zalgo.zalgo().zalgofy("Obviously not Soup!"))
 
-    elif "i would die for bunko" in msg or "i would die for you bunko" in msg:
-        await chn.send(zalgo.zalgo().zalgofy("then perish"))
-        await chn.send("||jk ily2 :heart:||")
+    elif "bunko" in msg:
+        await chn.send("I have no idea who that is.")
+        await chn.send("||jk i'll always remember where i came from :D :heart:||")
 
-    elif msg.strip() in ["i love you bunko", "i love bunko", "ily bunko"]:
-        await chn.send(":heart:")
+    elif msg.strip() in ["metho", "who's metho", "whos metho", "hi metho"]:
+        await chn.send("https://tenor.com/bRUYj.gif")
+
+    elif msg.strip() in ["who is the best committee member", "whos the best committee member"]:
+        await chn.send("Obviously Kyara!")
 
 async def on_dm(message):
 
