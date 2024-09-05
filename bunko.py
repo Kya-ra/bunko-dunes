@@ -16,7 +16,7 @@ ADMIN_ROLE="Discord Administrator"
 MEMBER_ROLE="DUNeS Member"
 
 DUNES_SERVER_ID=855920166986186783
-SECRET_BOT_CHANNEL_ID=855920167431438345
+SECRET_BOT_CHANNEL_ID=1277083938514403350
 
 advanced_guilds = ["DUNeS - DU Neurodiversity Society","neurotests"]
 confirmation_token = ""
